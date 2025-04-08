@@ -1,0 +1,139 @@
+﻿@using YoutubeSummarizer.Services
+@inject IYouTubeService YouTube
+@inject IJSRuntime JSRuntime
+
+<style>
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: #09f;
+    animation: spin 1s infinite linear;
+    
+}
+@@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+
+<div class="container">
+    <div class="form-group">
+        <label for="youTubeLink">YouTube Link URL:</label>
+        <input type="text" class="form-control" id="youTubeLink" @bind="youTubeLink" @bind:event="oninput" />
+    </div>
+    <br />
+@*     <div class="form-group">
+        <label for="videoLanguage">Video Language:</label>
+        <select id="videoLanguage" class="form-control" @bind="videoLanguage">
+            <option value="en">English</option>
+            <option value="ko">Korean</option>
+        </select>
+    </div> *@
+
+    <div class="form-group">
+        <label for="summaryLanguage">Summary Language:</label>
+        <select id="summaryLanguage" @bind="summaryLanguage">
+            <option value="english">English</option>
+            <option value="arabic">العربية (Arabic)</option>
+            <option value="bengali">বাংলা (Bengali)</option>
+            <option value="german">Deutsch</option>
+            <option value="spanish">Español (Spanish)</option>
+            <option value="french">Français (French)</option>
+            <option value="hindi">हिन्दी (Hindi)</option>
+            <option value="japanese">日本語 (Japanese)</option>
+            <option value="portuguese">Português (Portuguese)</option>
+            <option value="russian">русский (Russian)</option>
+            <option value="urdu">اُردُو (Urdu)</option>
+            <option value="mandarin chinese">普通话 (Mandarin Chinese)</option>
+
+        </select>
+    </div>
+    <br />
+
+    <div class="form-group">
+        <!-- Disable the Summary button during summarization -->
+        <button class="btn btn-primary" @onclick="Summarize" disabled="@IsSummarizeDisabled()">Summary</button>
+        <button class="btn btn-secondary" @onclick="Clear">Clear</button>
+        <button class="btn btn-danger" @onclick="Reload">Reload</button>
+    </div>
+
+    @if (Loading)
+    {
+        <div class="row">
+            <div class="col-auto">
+                <div class="spinner"></div>
+            </div>
+            <div class="col">
+                <div class="alert alert-warning">Fetching results from Azure OpenAI... give us a moment!</div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <div class="form-group">
+        <label for="summaryResult">Summary Result:</label>
+        <textarea class="form-control" id="summaryResult" rows="10" readonly>@summaryResult</textarea>
+    </div>
+</div>
+
+@code {
+
+    private string? youTubeLink;
+    private string videoLanguage = "en";
+    private string summaryLanguage = "en";
+    private string? summaryResult;
+    private string? errorMessage;
+    private bool Summarizing;
+    private bool Loading;
+
+    private bool IsSummarizeDisabled()
+    {
+        return string.IsNullOrEmpty(youTubeLink) || Summarizing;
+
+    }
+
+
+
+    private async Task Summarize()
+    {
+        Summarizing = true;
+        Loading = true;
+        summaryResult = await YouTube.Summarize(youTubeLink, videoLanguage, summaryLanguage);
+        if (summaryResult.StartsWith("error:"))
+        {
+            errorMessage = summaryResult;
+            summaryResult = null;
+        }
+        Loading = false;
+        youTubeLink = "";
+    }
+
+    private void Clear()
+    {
+        youTubeLink = string.Empty;
+        videoLanguage = "en";
+        summaryLanguage = "en";
+        summaryResult = string.Empty;
+    }
+
+    private void OnYouTubeLinkInput()
+    {
+        if (!string.IsNullOrEmpty(youTubeLink))
+        {
+            Summarizing = false;
+        }
+    }
+
+    private void Reload()
+    {
+        JSRuntime.InvokeVoidAsync("window.location.reload");
+    }
+}
+

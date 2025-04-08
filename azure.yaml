@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: azd-youtube-summarizer
+metadata:
+  template: azd-youtube-summarizer@1.0.0
+infra:
+   provider: "bicep"
+services:
+  web:
+    project: ./src/YoutubeSummarizer.csproj
+    language: csharp
+    host: appservice
+
+hooks:
+  postdeploy: 
+    shell: pwsh
+    interactive: true
+    run: ./infra/azd-hooks/setkeyvariable.ps1
