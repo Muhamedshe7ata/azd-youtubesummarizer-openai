@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: azd-youtube-summarizer
+name: azd-youtubesummarizer-openai
 metadata:
-  template: azd-youtube-summarizer@1.0.0
+  template: azd-youtubesummarizer-openai@1.0.0
 infra:
    provider: "bicep"
 services:
