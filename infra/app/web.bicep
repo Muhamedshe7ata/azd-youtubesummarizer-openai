@@ -2,6 +2,7 @@ metadata description = 'Create web apps.'
 
 param planName string
 param appName string
+
 param serviceTag string
 param location string = resourceGroup().location
 param tags object = {}
@@ -9,28 +10,17 @@ param tags object = {}
 @description('SKU of the App Service Plan.')
 param sku string = 'B3'
 
-
-param openAiApiKey string 
-
 @description('Endpoint for Azure OpenAI account.')
 param openAiAccountEndpoint string
 
 type openAiOptions = {
   completionDeploymentName: string
-  embeddingDeploymentName: string
+  openAiApiKey: string
 
 }
 
 @description('Application configuration settings for OpenAI.')
 param openAiSettings openAiOptions
-
-
-//@description('Application configuration settings for Azure Cosmos DB.')
-//param cosmosDbSettings cosmosDbOptions
-
-
-
-
 
 type managedIdentity = {
   resourceId: string
@@ -39,6 +29,23 @@ type managedIdentity = {
 
 @description('Unique identifier for user-assigned managed identity.')
 param userAssignedManagedIdentity managedIdentity
+
+// Parameters needed for the OpenAI account module
+param accountName string
+
+
+// Import the account module directly, so we can grab the API key for web app environment variables
+module openAiAccount '../core/ai/cognitive-services/account.bicep' = {
+  name: 'openai-account-reference'
+  params: {
+    accountname: accountName
+    location: location
+    tags: tags
+    kind: 'OpenAI'
+    sku: 'S0'
+    enablePublicNetworkAccess: true
+  }
+}
 
 module appServicePlan '../core/host/app-service/plan.bicep' = {
   name: 'app-service-plan'
@@ -77,9 +84,8 @@ module appServiceWebAppConfig '../core/host/app-service/config.bicep' = {
     appSettings: {
       WEBSITE_RUN_FROM_PACKAGE: '1' //used to speed up deployment with no app runtime impact
       OPENAI__ENDPOINT: openAiAccountEndpoint
-      OPENAI__COMPLETIONDEPLOYMENTNAME: openAiSettings.completionDeploymentName
-      OPENAI__APIKEY: openAiApiKey
-      OPENAI__DEPLOYMENTNAME: openAiSettings.completionDeploymentName
+      OPENAI__APIKEY: openAiSettings.openAiApiKey
+      OPENAI__DEPLOYMENTNAME: 'gpt-4o'
       AZURE_CLIENT_ID: userAssignedManagedIdentity.clientId
       PROMPT__SYSTEM: 'You are an AI assistant which is used to summarize YouTube videos'
       PROMPT__TEMPERATURE: '0.7'

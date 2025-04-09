@@ -1,6 +1,6 @@
 metadata description = 'Creates an Azure Cognitive Services account.'
 
-param name string
+param accountname string
 param location string = resourceGroup().location
 param tags object = {}
 
@@ -25,7 +25,7 @@ param sku string = 'S0'
 param enablePublicNetworkAccess bool = true
 
 resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
-  name: name
+  name: accountname
   location: location
   tags: tags
   kind: kind
@@ -33,7 +33,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     name: sku
   }
   properties: {
-    customSubDomainName: name
+    customSubDomainName: accountname
     publicNetworkAccess: enablePublicNetworkAccess ? 'Enabled' : 'Disabled'
   }
   

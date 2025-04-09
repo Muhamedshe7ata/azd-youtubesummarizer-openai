@@ -5,20 +5,6 @@ targetScope = 'subscription'
 @description('Name of the environment that can be used as part of naming resource convention.')
 param environmentName string
 
-@minLength(1)
-@allowed([
-  'canadaeast'
-  'eastus'
-  'eastus2'
-  'francecentral'
-  'japaneast'
-  'norwayeast'
-  'polandcentral'
-  'southindia'
-  'swedencentral'
-  'switzerlandnorth'
-  'westus3'
-])
 @description('Primary location for all resources.')
 param location string
 
@@ -26,11 +12,11 @@ param location string
 param principalId string = ''
 
 // Optional parameters
-param openAiAccountName string = ''
 param userAssignedIdentityName string = ''
 param appServicePlanName string = ''
 param appServiceWebAppName string = ''
-param openAiApiKey string = ''
+
+
 
 // serviceName is used as value for the tag (azd-service-name) azd uses to identify deployment host
 param serviceName string = 'web'
@@ -39,14 +25,12 @@ var abbreviations = loadJsonContent('abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = {
   'azd-env-name': environmentName
-  repo: 'https://github.com/AzureCosmosDB/cosmosdb-nosql-copilot'
-}
-
-var openAiSettings = {
-  completionModelName: 'gpt-4o'
-  completionDeploymentName: 'gpt-4o'
   
 }
+
+param completionModelName string = 'gpt-4o'
+param completionDeploymentName string = 'gpt-4o'
+  
 
 
 var principalType = 'User'
@@ -67,18 +51,36 @@ module identity 'app/identity.bicep' = {
   }
 }
 
-module ai 'app/ai.bicep' = {
-  name: 'ai'
+module openAiAccount 'core/ai/cognitive-services/account.bicep' = {
   scope: resourceGroup
+  name: 'openai-account'
   params: {
-    accountName: !empty(openAiAccountName) ? openAiAccountName : '${abbreviations.openAiAccount}-${resourceToken}'
+    accountname: '${abbreviations.openAiAccount}-${resourceToken}'
     location: location
-    completionModelName: openAiSettings.completionModelName
-    completionsDeploymentName: openAiSettings.completionDeploymentName
-    
     tags: tags
+    kind: 'OpenAI'
+    sku: 'S0'
+    enablePublicNetworkAccess: true
+    // add deployment for gpt-4o model
+
+
   }
 }
+
+module openAiModelDeployments 'core/ai/cognitive-services/deployment.bicep' = {
+  scope: resourceGroup
+  name: completionDeploymentName
+  params: {
+    name: completionDeploymentName
+    parentAccountName: openAiAccount.outputs.name
+    skuName: 'Standard'
+    skuCapacity: 10
+    modelName: completionModelName
+    modelVersion: '2024-05-13'
+    modelFormat: 'OpenAI'
+    }
+  }
+
 
 module web 'app/web.bicep' = {
   name: 'web'
@@ -86,12 +88,11 @@ module web 'app/web.bicep' = {
   params: {
     appName: !empty(appServiceWebAppName) ? appServiceWebAppName : '${abbreviations.appServiceWebApp}-${resourceToken}'
     planName: !empty(appServicePlanName) ? appServicePlanName : '${abbreviations.appServicePlan}-${resourceToken}'
-    openAiAccountEndpoint: ai.outputs.endpoint
-    
+    openAiAccountEndpoint: openAiAccount.outputs.endpoint
+    accountName: openAiAccount.outputs.name
     openAiSettings: {
-      completionDeploymentName: ai.outputs.deployments[0].name
-      embeddingDeploymentName: ai.outputs.deployments[1].name
-
+      completionDeploymentName: openAiModelDeployments.name
+      openAiApiKey: openAiAccount.outputs.apikey
     }
 
     userAssignedManagedIdentity: {
@@ -101,7 +102,6 @@ module web 'app/web.bicep' = {
     location: location
     tags: tags
     serviceTag: serviceName
-    openAiApiKey: openAiApiKey
   }
 }
 
@@ -122,12 +122,10 @@ output AZURE_WEB_APP_NAME string = '${abbreviations.appServiceWebApp}-${resource
 output AZURE_RESOURCE_GROUP_NAME string = resourceGroup.name
 
 // AI outputs
-output AZURE_OPENAI_ACCOUNT_ENDPOINT string = ai.outputs.endpoint
+output AZURE_OPENAI_ACCOUNT_ENDPOINT string = openAiAccount.outputs.endpoint
 #disable-next-line outputs-should-not-contain-secrets // Deployment name is not a secret, although it gets flagged as one
-output AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME string = ai.outputs.deployments[0].name
-#disable-next-line outputs-should-not-contain-secrets // Deployment name is not a secret, although it gets flagged as one
-output AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME string = ai.outputs.deployments[1].name
-#disable-next-line outputs-should-not-contain-secrets // Explicitly using this to demo the usage of api key in the app settings. THIS IS NOT ACCEPTABLE FOR PRODUCTION ENVIRONMENTS.
-output AZURE_OPENAI_KEY string = ai.outputs.apikey
+output AZURE_OPENAI_COMPLETION_DEPLOYMENT_NAME string = openAiModelDeployments.outputs.name
+
+
 
 
