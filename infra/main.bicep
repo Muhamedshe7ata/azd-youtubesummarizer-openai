@@ -117,6 +117,9 @@ module security 'app/security.bicep' = {
   }
 }
 
+
+
+
 // Web App outputs
 output AZURE_WEB_APP_NAME string = '${abbreviations.appServiceWebApp}-${resourceToken}'
 output AZURE_RESOURCE_GROUP_NAME string = resourceGroup.name

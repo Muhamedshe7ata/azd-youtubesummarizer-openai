@@ -32,91 +32,77 @@
 
 ***
 ### 1. What Resources are getting deployed
-This scenario deploys **an Azure Storage Account**, having blobs and file shares as main data storage scenarios, displaying Seattle scenery images.   
+This scenario deploys **an Azure Web App, showcasing a Youtube Summarizer app, allowing users to provide a Youtube video link, select their preferred language and get a summmarized bullet list back from the Azure OpenAI Chat Completion.   
 
+This scenario is based on 4 Azure Resources:
 * rg-%azdenvname% - Azure Resource Group.
-* id-Script-%guid% - Azure Managed Identity to run the file copy script
-* id-upload-%guid% - Azure Managed Identity to upload files into blobs and file share
-* %guid%storageaccount - Azure Storage Account, used for Blobs and File Share services
-* pwscript-uploadDataScript - PowerShell script to upload files into blobs and file share
+* openai-%guid% - The Azure OpenAI Resource with GPT-4o model deployed
+* plan-%guid% - Azure App Service Plan, used by the Azure App Service
+* ua-id-%guid% - User Managed Identity, used by the Azure App Service
+* web-%guid% - Azure App Service, running the Blazor .NET YoutubeSummarizer sample web application
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/ResourceGroup_Overview.png" alt="Stor Account Resource Group" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/ResourceGroup_Overview.png" alt="Youtube Summarizer Resource Group" style="width:70%;">
 <br></br>
 
 ### 2. What can I demo from this scenario after deployment
 
-#### 2a. Blob Storage Demo
+I think it is a powerful approach to first show the capability of the app, before digging into the actual Azure Resources behind the scenes.
 
-1. In this scenario, the focus is highlighting the main features of an Azure Storage Account, being Blob storage.
-1. Navigate to the **Storage Account**, and open the **Overview** tab.
-1. Highlight the **Replication** and **Account Kind** settings.
-1. Navigate to **Storage Browser**. Select **Blob Containers**.
-1. Open the **images** blob.
-1. Notice there are **6 images files** in here. Select one of the image files.
-1. From the detailed blade, select URL and copy/paste this into a new browser window.
-1. The file will be downloaded in the browser; Open the file to see the actual Seattle scenery image.
+#### 2a. Using the sample web app
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/blob_image_URL.png" alt="Blob Image" style="width:70%;">
+1. Once the deployment is complete, navigate to the **web app URL**, and open it in your browser window.
+
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/YoutubeSummarizer_home.png" alt="Youtube Summarizer Home Page" style="width:70%;">
 <br></br>
 
-**Note:** The fact the image can be downloaded just by connecting to the URL, is because of the **blob anonymous access level** as well as **storage account public access**.
-</div>
+1. Provide a **link to a Youtube video** (Note: the video should be in English and provide Closed Captions)
+1. Select the **target language** you want to use for the summary
+1. Click the **Summary** button. 
+1. A spinner appears, together with an informative message, saying it is communicating with the OpenAI Service.
 
-1. Return to the Blob container view, select **image-01.jpg** and click the **Change Access Level** button. 
-1. Switch from **Blob (anonymous read access for blobs only) to **Private (no anonymous access).
-
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/blob_access_level.png" alt="Blob Access Levels" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/Trigger_summary.png" alt="Complete all fields" style="width:70%;">
 <br></br>
 
-1. Select **image-01.jpg** to open its Overview blade. 
-1. Copy the URL into a new browser tab.
-1. Notice, the image file is no longer available for download, but an <Resource Not Found> error message appears.
+1. Wait for the process to complete, after which a summary in 5 bullet point sentences will be provided for the video, in the language output of choice.
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/resourcenotfound.png" alt="Resource Not Found error" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/Summary_in_choosen_language.png" alt="Summary Results in foreign language" style="width:70%;">
 <br></br>
 
-1. From the Storage Account resource, navigate to **Settings / Configuration **.
-1. Notice the **Allow Blob Anonymous Access**, currently set as **Enabled**.
-1. Switch this setting to **Disabled**.
-1. Save the changes.
-1. Return to the Storage Browser view, images blob folder. 
-1. Switch **Access Level** back to **Allow Blob Anonymous Access**.
-1. Notice the error message on screen, saying this setting cannot be enabled, as the Storage Account does not allow Public Access. 
+#### 2b. Azure OpenAI Service
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/blob_no_anonymous_accesslevel.png" alt="Resource Not Found error" style="width:70%;">
+1. From the Azure Portal, navigate to the Resource Group for this scenario.
+1. Select the OpenAI Resource.
+
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/OpenAI_ResourceBlade.png" alt="OpenAI Resource Blade" style="width:70%;">
 <br></br>
 
-#### 2b. File Share Storage Demo
+1. From the Left Side Menu, **open several sections**, such as Resource Management, Security, Monitoring,... to highlight this is just like most other Azure Resources.
+1. From the **Overview** tab, select **Endpoints**. This opens the **Keys and Endpoints** section, showing the different API-Keys, as well as the actual URL Endpoint for this OpenAI Service. These are 2 parameters the web app needs to function correctly.
 
-1. In this scenario, the focus is highlighting some of the additonal features of an Azure Storage Account, in this case, File Share storage.
-1. Navigate to **Storage Browser**. Select **File Share**.
-1. Open the **fileshare** File Share.
-1. Notice there are **6 images files** in here. Select one of the image files.
-1. From the detailed blade, select URL and copy/paste this into a new browser window.
-1. Notice, the image file is not available for download, but an <InvalidHeader> error message appears.
-
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/invalidheader.png" alt="Resource Not Found error" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/OpenAI_ResourceBlade.png" alt="OpenAI Resource Blade" style="width:70%;">
 <br></br>
 
-1. From the Storage Browser view, navigate to **File Share**.
-1. From the right hand view, select **fileshare**; notice the **Connect** menu item becomes available.
-1. Depending on your client Operating System, the steps might be slightly different. For this guide, I assume you are using a Windows OS client.
-1. From the **Windows** Tab, accept the default **Drive Letter** and **Storage Account Key** settings.
-1. Click the **Show Script** button.
+1. **Select** the OpenAI Resource, and from the **Overview** blade, highlight **"Explore Azure AI Foundry Portal"**.
+1. Click the button, which redirects you to the **Azure AI Foundry** portal, allowing you to interact with the different AI Services building blocks for your AI applications. 
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/smb_connect.png" alt="SMB Connect Settings" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/AI_Foundry.png" alt="Explore AI Foundry Portal" style="width:70%;">
 <br></br>
 
-1. Copy the script in a **PowerShell** Terminal, and run it.
-1. The script will first validate connectivity to SMB Port 445.
+1. From **Shared Resources**, select **Deployments**, which will show you the **GPT-4o** model we deployed as part of the scenario.  
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/test_connection.png" alt="SMB Port 445 connection test" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/gpt-4o_deployedmodel.png" alt="GPT-4o Deployed Model" style="width:70%;">
 <br></br>
 
-1. If the connectivity is successful, it will map the fileshare to the Drive Letter defined earlier. In my case, this was the Z-drive.
+1. Next, navigate to **Playground** and select **Chat**. This is the main place where a developer would validate the working of the selected GPT model, as well as fine-tune the System Message. Notice how - in this scenario - the System Message is still the default, generic one provided by AI Foundry. However, the YoutubeSummarizer application is not using the default message, but got a customized one, defined as part of the application source code (see later).
 
-<img src="https://raw.githubusercontent.com/petender/azd-storaccnt/main/Demoguides/z_drive.png" alt="Z-Drive mapped" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/chat_playground.png" alt="Chat Playground" style="width:70%;">
 <br></br>
+
+#### Application Code view [Optional demo, for developer audience]
+
+Assuming you deployed this demo scenario through AZD, know you have the full source code of the application on your local machine. Perfect to walk developer learners through some code snippets.
+
+You find the full code in the scenario subfolder, in the **/src** location.
 
 [comment]: <> (this is the closing section of the demo steps. Please do not change anything here to keep the layout consistant with the other demoguides.)
 <br></br>
