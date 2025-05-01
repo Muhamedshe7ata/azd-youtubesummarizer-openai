@@ -60,7 +60,7 @@ I think it is a powerful approach to first show the capability of the app, befor
 1. Click the **Summary** button. 
 1. A spinner appears, together with an informative message, saying it is communicating with the OpenAI Service.
 
-<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/Trigger_summary.png" alt="Complete all fields" style="width:70%;">
+<img src="https://raw.githubusercontent.com/petender/azd-youtubesummarizer-openai/main/demoguide/Trigger_Summary.png" alt="Complete all fields" style="width:70%;">
 <br></br>
 
 1. Wait for the process to complete, after which a summary in 5 bullet point sentences will be provided for the video, in the language output of choice.
