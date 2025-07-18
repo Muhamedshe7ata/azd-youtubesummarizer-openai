@@ -36,9 +36,8 @@ namespace YoutubeSummarizer.Services
             {
                 throw new ArgumentNullException(nameof(videoLink), "Video link cannot be null or empty.");
             }
-
-            // --- THIS IS THE FINAL, CORRECTED VERSION ---
-            var videoId = YoutubeExplode.Videos.VideoId.Parse(videoLink); // Parse the ID first.
+            
+            var videoId = YoutubeExplode.Videos.VideoId.Parse(videoLink);
             try
             {
                 var subtitle = await GetSubtitle(videoId, videoLanguage);
@@ -55,8 +54,9 @@ namespace YoutubeSummarizer.Services
             }
         }
 
-        // This method now takes a VideoId object instead of a string URL
-        private async Task<string> GetSubtitle(VideoId videoId, string videoLanguage)
+        // --- THIS IS THE CORRECTED LINE ---
+        // I have added "YoutubeExplode.Videos." before "VideoId"
+        private async Task<string> GetSubtitle(YoutubeExplode.Videos.VideoId videoId, string videoLanguage)
         {
             var youtube = new YoutubeClient();
 
