@@ -1,9 +1,11 @@
 ﻿using Azure;
 using Azure.AI.OpenAI;
-using System.Linq; // <-- THIS WAS THE MISSING LINE THAT CAUSED THE ERROR
+using System.Linq;
 using YoutubeSummarizer.Configurations;
 using YoutubeExplode;
 using YoutubeExplode.Videos.ClosedCaptions;
+using System.Text;
+using YoutubeExplode.Exceptions; // <-- Added for specific error handling
 
 namespace YoutubeSummarizer.Services
 {
@@ -35,9 +37,23 @@ namespace YoutubeSummarizer.Services
                 throw new ArgumentNullException(nameof(videoLink), "Video link cannot be null or empty.");
             }
 
-            var subtitle = await GetSubtitle(videoLink, videoLanguage);
-            var summary = await GetSummary(subtitle, summaryLanguage);
-            return summary;
+            // The try-catch is now inside the Summarize method
+            try
+            {
+                var subtitle = await GetSubtitle(videoLink, videoLanguage);
+                var summary = await GetSummary(subtitle, summaryLanguage);
+                return summary;
+            }
+            // THIS IS THE NEW, IMPORTANT PART
+            catch (VideoUnavailableException)
+            {
+                // This will now show a friendly message instead of crashing.
+                return "The requested video is unavailable. It may be private, age-restricted, or blocked in your region. Please try a different video.";
+            }
+            catch (Exception ex) // Catch any other unexpected errors
+            {
+                return $"An unexpected error occurred: {ex.Message}";
+            }
         }
 
         private async Task<string> GetSubtitle(string videoUrl, string videoLanguage)
@@ -54,9 +70,14 @@ namespace YoutubeSummarizer.Services
             }
 
             var track = await youtube.Videos.ClosedCaptions.GetAsync(trackInfo);
-            var fullText = string.Join(" ", track.Captions.Select(c => c.Text));
+            
+            var subtitleBuilder = new StringBuilder();
+            foreach (var caption in track.Captions)
+            {
+                subtitleBuilder.Append(caption.Text).Append(' ');
+            }
 
-            return fullText;
+            return subtitleBuilder.ToString();
         }
         
         private async Task<string> GetSummary(string subtitle, string summaryLanguage)
@@ -73,7 +94,8 @@ namespace YoutubeSummarizer.Services
                     new ChatMessage(ChatRole.User, subtitle)
                 }
             };
-
+            
+            // Note: The try-catch for OpenAI-specific errors is kept here
             try
             {
                 var summary = await _openAIClient.GetChatCompletionsAsync(chatCompletionsOptions);
@@ -81,11 +103,7 @@ namespace YoutubeSummarizer.Services
             }
             catch (RequestFailedException ex) when (ex.Status == 429)
             {
-                return "Requests have exceeded the token rate limit of your current OpenAI pricing tier. Please retry after 60 seconds.";
-            }
-            catch (Exception ex)
-            {
-                return $"Error: {ex.Message}";
+                return "The request to OpenAI has exceeded the rate limit. Please retry after 60 seconds.";
             }
         }
     }
