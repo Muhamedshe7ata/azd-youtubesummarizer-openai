@@ -1,51 +1,42 @@
-using Aliencube.YouTubeSubtitlesExtractor;
-using Aliencube.YouTubeSubtitlesExtractor.Abstractions;
-using Azure;
 using Azure.AI.OpenAI;
-using YoutubeSummarizer.Components;
 using YoutubeSummarizer.Configurations;
 using YoutubeSummarizer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services
-    .AddScoped<IYouTubeService, YouTubeService>()
-    .AddScoped<IYouTubeVideo, YouTubeVideo>()
-    .AddSingleton<OpenAISettings>(p => p.GetRequiredService<IConfiguration>()
-                                        .GetSection(OpenAISettings.Name)
-                                        .Get<OpenAISettings>() ?? new OpenAISettings())
-    .AddSingleton<PromptSettings>(p => p.GetRequiredService<IConfiguration>()
-                                        .GetSection(PromptSettings.Name)
-                                        .Get<PromptSettings>() ?? new PromptSettings())
-    .AddScoped<OpenAIClient>(p =>
-    {
-        var openAISettings = p.GetRequiredService<OpenAISettings>();
-        var endpoint = new Uri(openAISettings.Endpoint ?? throw new InvalidOperationException("OpenAI endpoint is not configured."));
-        var credential = new AzureKeyCredential(openAISettings.ApiKey ?? throw new InvalidOperationException("OpenAI API key is not configured."));
-        var client = new OpenAIClient(endpoint, credential);
-        return client;
-    })
-    .AddHttpClient()
-    .AddRazorComponents()
+builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// This section configures settings from your appsettings.json
+var openAISettings = builder.Configuration.GetSection("OpenAI").Get<OpenAISettings>();
+var promptSettings = builder.Configuration.GetSection("Prompt").Get<PromptSettings>();
+
+// This sets up the configuration objects to be used elsewhere
+builder.Services.AddSingleton(openAISettings);
+builder.Services.AddSingleton(promptSettings);
+
+// This sets up the official Azure OpenAI client
+builder.Services.AddSingleton(p => new OpenAIClient(new Uri(openAISettings.Endpoint), new Azure.AzureKeyCredential(openAISettings.Key)));
+
+// This is the corrected line.
+// It registers your YouTubeService correctly without the old, broken library.
+builder.Services.AddScoped<IYouTubeService, YouTubeService>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapRazorComponents<App>()
+app.MapRazorComponents<YoutubeSummarizer.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
