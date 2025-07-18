@@ -1,26 +1,23 @@
 ﻿using Azure;
 using Azure.AI.OpenAI;
+using System.Linq; // <-- THIS WAS THE MISSING LINE THAT CAUSED THE ERROR
 using YoutubeSummarizer.Configurations;
 using YoutubeExplode;
 using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace YoutubeSummarizer.Services
 {
-    // The interface defines the contract for the service.
     public interface IYouTubeService
     {
         Task<string> Summarize(string videoLink, string videoLanguage = "en", string summaryLanguage = "en");
     }
 
-    // This is the one and only implementation of the service.
     public class YouTubeService : IYouTubeService
     {
-        // Dependencies for OpenAI. The old YouTube library is removed.
         private readonly OpenAIClient _openAIClient;
         private readonly OpenAISettings _openAISettings;
         private readonly PromptSettings _promptSettings;
 
-        // The constructor only takes the dependencies it needs.
         public YouTubeService(
             OpenAIClient openAIClient,
             OpenAISettings openAISettings,
@@ -31,7 +28,6 @@ namespace YoutubeSummarizer.Services
             _promptSettings = promptSettings ?? throw new ArgumentNullException(nameof(promptSettings));
         }
 
-        // The main public method.
         public async Task<string> Summarize(string videoLink, string videoLanguage = "en", string summaryLanguage = "en")
         {
             if (string.IsNullOrEmpty(videoLink))
@@ -44,7 +40,6 @@ namespace YoutubeSummarizer.Services
             return summary;
         }
 
-        // The updated private method to get subtitles using YoutubeExplode.
         private async Task<string> GetSubtitle(string videoUrl, string videoLanguage)
         {
             var youtube = new YoutubeClient();
@@ -58,13 +53,12 @@ namespace YoutubeSummarizer.Services
                 throw new InvalidOperationException($"Could not find subtitles for language '{videoLanguage}'. Please try another video.");
             }
 
-            var captions = await youtube.Videos.ClosedCaptions.GetAsync(trackInfo);
-            var fullText = string.Join(" ", captions.Select(c => c.Text));
+            var track = await youtube.Videos.ClosedCaptions.GetAsync(trackInfo);
+            var fullText = string.Join(" ", track.Captions.Select(c => c.Text));
 
             return fullText;
         }
-
-        // The private method to get the summary from OpenAI (this was already correct).
+        
         private async Task<string> GetSummary(string subtitle, string summaryLanguage)
         {
             var deploymentName = _openAISettings.DeploymentName;
