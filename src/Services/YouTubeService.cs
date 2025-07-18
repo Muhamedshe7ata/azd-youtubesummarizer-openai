@@ -5,7 +5,7 @@ using YoutubeSummarizer.Configurations;
 using YoutubeExplode;
 using YoutubeExplode.Videos.ClosedCaptions;
 using System.Text;
-using YoutubeExplode.Exceptions; // <-- Added for specific error handling
+using YoutubeExplode.Exceptions; // Required for specific error handling
 
 namespace YoutubeSummarizer.Services
 {
@@ -37,20 +37,18 @@ namespace YoutubeSummarizer.Services
                 throw new ArgumentNullException(nameof(videoLink), "Video link cannot be null or empty.");
             }
 
-            // The try-catch is now inside the Summarize method
             try
             {
                 var subtitle = await GetSubtitle(videoLink, videoLanguage);
                 var summary = await GetSummary(subtitle, summaryLanguage);
                 return summary;
             }
-            // THIS IS THE NEW, IMPORTANT PART
-            catch (VideoUnavailableException)
+            // THIS IS THE NEW, MORE SPECIFIC ERROR MESSAGE
+            catch (VideoUnavailableException ex)
             {
-                // This will now show a friendly message instead of crashing.
-                return "The requested video is unavailable. It may be private, age-restricted, or blocked in your region. Please try a different video.";
+                return $"The video with ID '{ex.VideoId}' is unavailable from Azure's network. It may be private, age-restricted, or regionally blocked. Please try a different public video.";
             }
-            catch (Exception ex) // Catch any other unexpected errors
+            catch (Exception ex)
             {
                 return $"An unexpected error occurred: {ex.Message}";
             }
@@ -70,7 +68,7 @@ namespace YoutubeSummarizer.Services
             }
 
             var track = await youtube.Videos.ClosedCaptions.GetAsync(trackInfo);
-            
+
             var subtitleBuilder = new StringBuilder();
             foreach (var caption in track.Captions)
             {
@@ -79,7 +77,7 @@ namespace YoutubeSummarizer.Services
 
             return subtitleBuilder.ToString();
         }
-        
+
         private async Task<string> GetSummary(string subtitle, string summaryLanguage)
         {
             var deploymentName = _openAISettings.DeploymentName;
@@ -90,12 +88,11 @@ namespace YoutubeSummarizer.Services
                 DeploymentName = deploymentName,
                 Messages =
                 {
-                    new ChatMessage(ChatRole.System, $"You are a Youtube video summarizer. Assume the source language of a transcript file is in English. You need to provide a summary in {summaryLanguage} in maximum 5 bullet points."),
+                    new ChatMessage(ChatRole.System, $"You are a Youtube video summarizer. You will be given a transcript. Provide a summary in {summaryLanguage} in maximum 5 bullet points."),
                     new ChatMessage(ChatRole.User, subtitle)
                 }
             };
             
-            // Note: The try-catch for OpenAI-specific errors is kept here
             try
             {
                 var summary = await _openAIClient.GetChatCompletionsAsync(chatCompletionsOptions);
