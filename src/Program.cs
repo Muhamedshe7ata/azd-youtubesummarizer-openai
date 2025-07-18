@@ -7,19 +7,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var openAISettings = builder.Configuration.GetSection("OpenAI").Get<OpenAISettings>();
-var promptSettings = builder.Configuration.GetSection("Prompt").Get<PromptSettings>();
+// This section configures settings from your appsettings.json
+var openAISettings = builder.Configuration.GetSection("OpenAI").Get<OpenAISettings>() ?? throw new InvalidOperationException("OpenAI settings are not configured.");
+var promptSettings = builder.Configuration.GetSection("Prompt").Get<PromptSettings>() ?? throw new InvalidOperationException("Prompt settings are not configured.");
 
+// This sets up the configuration objects to be used elsewhere
 builder.Services.AddSingleton(openAISettings);
 builder.Services.AddSingleton(promptSettings);
 
-// --- THIS IS THE CORRECTED LINE ---
+// This sets up the official Azure OpenAI client
 builder.Services.AddSingleton(p => new OpenAIClient(new Uri(openAISettings.Endpoint), new Azure.AzureKeyCredential(openAISettings.ApiKey)));
 
+// It registers your YouTubeService correctly without the old, broken library.
 builder.Services.AddScoped<IYouTubeService, YouTubeService>();
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
