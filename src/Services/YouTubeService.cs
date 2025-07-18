@@ -5,7 +5,7 @@ using YoutubeSummarizer.Configurations;
 using YoutubeExplode;
 using YoutubeExplode.Videos.ClosedCaptions;
 using System.Text;
-using YoutubeExplode.Exceptions; // Required for specific error handling
+using YoutubeExplode.Exceptions;
 
 namespace YoutubeSummarizer.Services
 {
@@ -37,16 +37,17 @@ namespace YoutubeSummarizer.Services
                 throw new ArgumentNullException(nameof(videoLink), "Video link cannot be null or empty.");
             }
 
+            // --- THIS IS THE FINAL, CORRECTED VERSION ---
+            var videoId = YoutubeExplode.Videos.VideoId.Parse(videoLink); // Parse the ID first.
             try
             {
-                var subtitle = await GetSubtitle(videoLink, videoLanguage);
+                var subtitle = await GetSubtitle(videoId, videoLanguage);
                 var summary = await GetSummary(subtitle, summaryLanguage);
                 return summary;
             }
-            // THIS IS THE NEW, MORE SPECIFIC ERROR MESSAGE
-            catch (VideoUnavailableException ex)
+            catch (VideoUnavailableException)
             {
-                return $"The video with ID '{ex.VideoId}' is unavailable from Azure's network. It may be private, age-restricted, or regionally blocked. Please try a different public video.";
+                return $"The video with ID '{videoId}' is unavailable from Azure's network. It may be private, age-restricted, or regionally blocked. Please try a different public video.";
             }
             catch (Exception ex)
             {
@@ -54,10 +55,10 @@ namespace YoutubeSummarizer.Services
             }
         }
 
-        private async Task<string> GetSubtitle(string videoUrl, string videoLanguage)
+        // This method now takes a VideoId object instead of a string URL
+        private async Task<string> GetSubtitle(VideoId videoId, string videoLanguage)
         {
             var youtube = new YoutubeClient();
-            var videoId = YoutubeExplode.Videos.VideoId.Parse(videoUrl);
 
             var trackManifest = await youtube.Videos.ClosedCaptions.GetManifestAsync(videoId);
             var trackInfo = trackManifest.GetByLanguage(videoLanguage);
@@ -92,7 +93,7 @@ namespace YoutubeSummarizer.Services
                     new ChatMessage(ChatRole.User, subtitle)
                 }
             };
-            
+
             try
             {
                 var summary = await _openAIClient.GetChatCompletionsAsync(chatCompletionsOptions);
